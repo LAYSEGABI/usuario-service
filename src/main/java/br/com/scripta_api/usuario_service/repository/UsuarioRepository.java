@@ -46,4 +46,14 @@ public class UsuarioRepository implements UsuarioService {
                 .map(mapper::toDomain);
     }
 
+    @Override
+    @Transactional
+    public void deletar(Long id) {
+        if (!repository.existsById(id)) {
+            // Pode usar UsuarioNaoEncontradoException se tiver, ou RuntimeException
+            throw new RuntimeException("Usuário não encontrado com ID: " + id);
+        }
+        repository.deleteById(id);
+    }
+
 }

@@ -61,4 +61,11 @@ public class UsuarioController {
         Usuario usuario = usuarioService.buscarPorMatricula(matricula).orElseThrow();
         return ResponseEntity.ok(UsuarioResponse.fromDomain(usuario));
     }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletar(@PathVariable Long id) {
+
+        usuarioService.deletar(id);
+    }
 }

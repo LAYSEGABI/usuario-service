@@ -13,4 +13,6 @@ public interface UsuarioService {
     List<Usuario> listarUsuarios();
 
     Optional<Usuario> buscarPorMatricula(String matricula);
+
+    void deletar(Long id);
 }

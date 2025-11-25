@@ -30,39 +30,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
-                // 2. Definir a política de sessão como STATELESS (API não guarda sessão)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // 3. Informar ao Spring qual provedor de autenticação usar
-                .authenticationProvider(authenticationProvider)
-
-                // 4. Definir as regras de autorização (o firewall)
-                .authorizeHttpRequests(authz -> authz
-
-                        // Rotas Públicas (Permitir acesso sem token)
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        // (Adicione aqui rotas de Swagger/OpenAPI se estiver usando)
-                        // .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
-
-                        // Rotas Protegidas (Exigem Papel Específico)
-                        // (RF-B01) Apenas bibliotecários podem criar usuários
-                        .requestMatchers(HttpMethod.POST, "/usuarios").hasRole("BIBLIOTECARIO")
-                        // Apenas bibliotecários podem listar todos os usuários
-                        .requestMatchers(HttpMethod.GET, "/usuarios").hasRole("BIBLIOTECARIO")
-                        // o resto (ex: GET /usuarios/me) exige apenas autenticação
-                        .anyRequest().authenticated()
+                // --- NOVA CONFIGURAÇÃO DE CORS AQUI ---
+                .cors(cors -> cors.configurationSource(request -> {
+                    var corsConfiguration = new org.springframework.web.cors.CorsConfiguration();
+                    corsConfiguration.setAllowedOrigins(java.util.List.of("*")); // Asterisco libera tudo!
+                    corsConfiguration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    corsConfiguration.setAllowedHeaders(java.util.List.of("*"));
+                    return corsConfiguration;
+                }))
+                // --------------------------------------
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
                 )
-
-                // 5. Adicionar nosso filtro JWT
-                // Ele deve rodar ANTES do filtro padrão do Spring,
-                // para que possamos validar o token e configurar o contexto de segurança.
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(e -> e.authenticationEntryPoint((
-                        (request, response, authException) ->
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Não autorizado")))
-                );
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
         return http.build();
     }
