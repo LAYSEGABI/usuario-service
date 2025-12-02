@@ -1,5 +1,6 @@
 package br.com.scripta_api.usuario_service.config;
 
+// Se não estiver usando os imports do JWT, pode remover, mas mantive para não quebrar compilação
 import br.com.scripta_api.usuario_service.security.JwtAuthenticatedFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -15,45 +16,42 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
-// Atualizando CORS
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    // Mantive as variáveis declaradas para o Lombok não reclamar,
+    // mas não vamos usá-las na configuração abaixo.
     private final JwtAuthenticatedFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Habilita o CORS usando a configuração do @Bean abaixo
+                // Habilita CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // Desabilita CSRF (não necessário para APIs REST Stateless)
+                // Desabilita CSRF
                 .csrf(csrf -> csrf.disable())
 
-                // Define a política de sessão como STATELESS (não guarda sessão no servidor)
+                // Sessão Stateless
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // Configura as permissões de acesso
+                // --- LIBERA GERAL (MODO APRESENTAÇÃO) ---
                 .authorizeHttpRequests(auth -> auth
-                                // Libera endpoints públicos (Login, Swagger, H2 Console, Raiz)
-                                .requestMatchers("/auth/**", "/h2-console/**", "/", "/error").permitAll()
-                                // Libera OPTIONS para o pré-voo do CORS (importante para o navegador)
-                                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                                // PARA TESTES: Libera tudo (remover em produção)
-                                .anyRequest().permitAll()
-                        // EM PRODUCAO: Comente a linha acima e descomente a de baixo
-                        // .anyRequest().authenticated()
+                        // Aceita tudo sem perguntar quem é
+                        .anyRequest().permitAll()
                 )
 
-                // Configuracao para o H2 Console funcionar (se estiver usando)
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+                // H2 Console
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
-                // Adiciona o provedor de autenticacao e o filtro JWT
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        // --- CRUCIAL: COMENTEI OS FILTROS ABAIXO ---
+        // Se deixasse ativo, o Java tentaria validar o token fake e daria erro.
+        // .authenticationProvider(authenticationProvider)
+        // .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -62,14 +60,18 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
+        // Permite qualquer origem (Front local ou Vercel)
         configuration.setAllowedOrigins(List.of("*"));
 
+        // Permite todos os métodos
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
 
+        // Permite todos os headers
         configuration.setAllowedHeaders(List.of("*"));
+
+        // Expõe o header de autorização (caso precisasse)
         configuration.setExposedHeaders(List.of("Authorization"));
 
-        // Aplica para todas as rotas
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
