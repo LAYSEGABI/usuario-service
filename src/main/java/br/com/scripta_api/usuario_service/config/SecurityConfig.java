@@ -1,15 +1,12 @@
 package br.com.scripta_api.usuario_service.config;
 
 import br.com.scripta_api.usuario_service.security.JwtAuthenticatedFilter;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -17,53 +14,64 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final JwtAuthenticatedFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // --- NOVA CONFIGURAÇÃO DE CORS ---
-                .cors(cors -> cors.configurationSource(request -> {
-                    var corsConfiguration = new org.springframework.web.cors.CorsConfiguration();
-                    corsConfiguration.setAllowedOrigins(java.util.List.of("*"));
-                    corsConfiguration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                    corsConfiguration.setAllowedHeaders(java.util.List.of("*"));
-                    return corsConfiguration;
-                }))
-                // --------------------------------------
+                // Habilita o CORS usando a configuração do @Bean abaixo
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Desabilita CSRF (não necessário para APIs REST Stateless)
                 .csrf(csrf -> csrf.disable())
+
+                // Define a política de sessão como STATELESS (não guarda sessão no servidor)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Configura as permissões de acesso
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
+                                // Libera endpoints públicos (Login, Swagger, H2 Console, Raiz)
+                                .requestMatchers("/auth/**", "/h2-console/**", "/", "/error").permitAll()
+                                // Libera OPTIONS para o pré-voo do CORS (importante para o navegador)
+                                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                                // PARA TESTES: Libera tudo (remover em produção)
+                                .anyRequest().permitAll()
+                        // EM PRODUÇÃO: Comente a linha acima e descomente a de baixo
+                        // .anyRequest().authenticated()
                 )
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
+
+                // Configuração para o H2 Console funcionar (se estiver usando)
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+
+                // Adiciona o provedor de autenticação e o filtro JWT
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    /**
-     * Efetua liberação para qualquer tipo de origem, não é legal para prod, mas para fins acadêmicos é ok.
-     *
-     * @author miguel.silva
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+
         configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
+
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         configuration.setExposedHeaders(List.of("Authorization"));
 
+        // Aplica para todas as rotas
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
 }
