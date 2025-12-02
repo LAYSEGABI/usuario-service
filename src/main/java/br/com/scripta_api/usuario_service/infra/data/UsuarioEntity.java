@@ -7,8 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.time.LocalDate;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Entity(name = "Usuarios")
 @Table(name = "usuarios")
@@ -29,25 +27,15 @@ public class UsuarioEntity {
     private String matricula;
 
     @Column(nullable = false)
-    @JsonIgnore // ADICIONE ISSO: Protege para a senha nunca vazar no JSON (e evita alguns loops)
+    @JsonIgnore // Mantém o json limpo
     private String senha;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoDeConta tipoDeConta;
 
-    // --- NOVOS CAMPOS (Adicionados para bater com o seu Front-end) ---
-
-    @Column(unique = true) // CPF deve ser único no sistema
-    private String cpf;
-
-    @Column(unique = true) // Email também costuma ser único
-    private String email;
-
-    @Column(name = "data_nascimento")
-    @JsonFormat(pattern = "yyyy-MM-dd") // ADICIONE ISSO AQUI
-    private LocalDate dataNascimento;
-
     @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ATIVO'")
-    private String status; // Ex: "ATIVO", "PENDENTE"
+    private String status;
+
+    // REMOVI: CPF, Email, DataNascimento para evitar erros na apresentação.
 }
