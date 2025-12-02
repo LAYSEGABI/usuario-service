@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Entity(name = "Usuarios")
 @Table(name = "usuarios")
@@ -44,6 +45,7 @@ public class UsuarioEntity {
     private String email;
 
     @Column(name = "data_nascimento")
+    @JsonFormat(pattern = "yyyy-MM-dd") // ADICIONE ISSO AQUI
     private LocalDate dataNascimento;
 
     @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ATIVO'")
