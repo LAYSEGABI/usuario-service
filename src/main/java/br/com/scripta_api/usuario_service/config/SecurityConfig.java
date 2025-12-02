@@ -15,7 +15,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
-
+// Atualizando CORS
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -44,14 +44,14 @@ public class SecurityConfig {
                                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                                 // PARA TESTES: Libera tudo (remover em produção)
                                 .anyRequest().permitAll()
-                        // EM PRODUÇÃO: Comente a linha acima e descomente a de baixo
+                        // EM PRODUCAO: Comente a linha acima e descomente a de baixo
                         // .anyRequest().authenticated()
                 )
 
-                // Configuração para o H2 Console funcionar (se estiver usando)
+                // Configuracao para o H2 Console funcionar (se estiver usando)
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
 
-                // Adiciona o provedor de autenticação e o filtro JWT
+                // Adiciona o provedor de autenticacao e o filtro JWT
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -66,7 +66,7 @@ public class SecurityConfig {
 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"));
 
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
 
         // Aplica para todas as rotas
