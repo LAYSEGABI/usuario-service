@@ -1,8 +1,5 @@
 package br.com.scripta_api.usuario_service.controller;
 
-import br.com.scripta_api.usuario_service.application.domain.Usuario;
-import br.com.scripta_api.usuario_service.application.domain.UsuarioBuilder;
-import br.com.scripta_api.usuario_service.application.gateways.service.UsuarioService;
 import br.com.scripta_api.usuario_service.dto.CriarUsuarioRequest;
 import br.com.scripta_api.usuario_service.dto.UsuarioResponse;
 import br.com.scripta_api.usuario_service.infra.data.UsuarioEntity;
@@ -15,78 +12,77 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {
 
-    private final UsuarioService usuarioService;
-    // INJETADO PARA CORREÇÃO RÁPIDA DE UPDATE (Modo Apresentação)
+    // --- ATENÇÃO: SÓ TEM O REPOSITÓRIO AQUI ---
+    // (Não pode ter 'private final UsuarioService usuarioService;')
     private final UsuarioRepository usuarioRepository;
 
+    // --- CRIAR ---
     @PostMapping
     public ResponseEntity<UsuarioResponse> criarUsuario(@Valid @RequestBody CriarUsuarioRequest request) {
-        Usuario usuarioRequest = UsuarioBuilder.builder()
-                .nome(request.getNome())
-                .matricula(request.getMatricula())
-                .senha(request.getSenha())
-                .tipoDeConta(request.getTipoDeConta())
-                .build();
 
-        Usuario novoUsuario = usuarioService.criarUsuario(usuarioRequest);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(UsuarioResponse.fromDomain(novoUsuario));
-    }
+        // Verifica se já existe
+        if (usuarioRepository.existsByMatricula(request.getMatricula())) {
+            throw new RuntimeException("Matrícula já cadastrada");
+        }
 
-    // --- NOVO MÉTODO PARA ATUALIZAR (PUT) ---
-    @PutMapping("/{id}")
-    public ResponseEntity<Void> atualizar(@PathVariable Long id, @RequestBody CriarUsuarioRequest request) {
-        // Busca a entidade no banco (Modo direto para garantir funcionamento)
-        UsuarioEntity entity = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
-        // Atualiza os dados
+        // CRIAÇÃO MANUAL (Sem Service)
+        UsuarioEntity entity = new UsuarioEntity();
         entity.setNome(request.getNome());
         entity.setMatricula(request.getMatricula());
         entity.setTipoDeConta(request.getTipoDeConta());
-        entity.setStatus(request.getStatus());
+        entity.setStatus(request.getStatus() != null ? request.getStatus() : "ATIVO");
 
-        // Só atualiza senha se o usuário mandou uma nova
-        if (request.getSenha() != null && !request.getSenha().isEmpty()) {
-            entity.setSenha(request.getSenha()); // Idealmente criptografar, mas para demo ok
-        }
+        // Senha padrão se vier vazia
+        String senha = (request.getSenha() != null && !request.getSenha().isEmpty()) ? request.getSenha() : "123456";
+        entity.setSenha(senha);
 
-        // Salva no banco
-        usuarioRepository.save(entity);
+        // Salva
+        UsuarioEntity salvo = usuarioRepository.save(entity);
 
-        // Retorna 204 No Content (Sucesso sem corpo)
-        return ResponseEntity.noContent().build();
+        // Converte para resposta manualmente para evitar erro de mapper
+        UsuarioResponse response = new UsuarioResponse(
+                salvo.getId(),
+                salvo.getNome(),
+                salvo.getMatricula(),
+                salvo.getTipoDeConta()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // --- LISTAR ---
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> listarUsuarios() {
-        List<Usuario> usuarios = usuarioService.listarUsuarios();
-        List<UsuarioResponse> response = usuarios.stream()
-                .map(UsuarioResponse::fromDomain)
-                .toList();
+        List<UsuarioResponse> response = usuarioRepository.findAll().stream()
+                .map(u -> new UsuarioResponse(u.getId(), u.getNome(), u.getMatricula(), u.getTipoDeConta()))
+                .collect(Collectors.toList());
+
         return ResponseEntity.ok(response);
     }
 
+    // --- PERFIL ---
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponse> getMeuPerfil(Authentication authentication) {
-        // Se estiver no modo "Libera Geral", isso pode vir null, então tratamos
-        if (authentication == null) {
-            return ResponseEntity.notFound().build();
-        }
+        if (authentication == null) return ResponseEntity.notFound().build();
+
         String matricula = authentication.getName();
-        Usuario usuario = usuarioService.buscarPorMatricula(matricula).orElseThrow();
-        return ResponseEntity.ok(UsuarioResponse.fromDomain(usuario));
+        UsuarioEntity u = usuarioRepository.findByMatricula(matricula)
+                .orElseThrow(() -> new RuntimeException("Usuario logado não encontrado"));
+
+        return ResponseEntity.ok(new UsuarioResponse(u.getId(), u.getNome(), u.getMatricula(), u.getTipoDeConta()));
     }
 
+    // --- DELETAR ---
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletar(@PathVariable Long id) {
-        usuarioService.deletar(id);
+        usuarioRepository.deleteById(id);
     }
 }
