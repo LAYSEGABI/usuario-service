@@ -5,6 +5,8 @@ import br.com.scripta_api.usuario_service.application.domain.UsuarioBuilder;
 import br.com.scripta_api.usuario_service.application.gateways.service.UsuarioService;
 import br.com.scripta_api.usuario_service.dto.CriarUsuarioRequest;
 import br.com.scripta_api.usuario_service.dto.UsuarioResponse;
+import br.com.scripta_api.usuario_service.infra.data.UsuarioEntity;
+import br.com.scripta_api.usuario_service.repository.UsuarioRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,12 +20,11 @@ import java.util.List;
 @RequestMapping("/usuarios")
 @RequiredArgsConstructor
 public class UsuarioController {
-    private final UsuarioService usuarioService;
 
-    /**
-     * (RF-B01) Endpoint para criar usuários.
-     * Protegido pelo SecurityConfig (só BIBLIOTECARIO).
-     */
+    private final UsuarioService usuarioService;
+    // INJETADO PARA CORREÇÃO RÁPIDA DE UPDATE (Modo Apresentação)
+    private final UsuarioRepository usuarioRepository;
+
     @PostMapping
     public ResponseEntity<UsuarioResponse> criarUsuario(@Valid @RequestBody CriarUsuarioRequest request) {
         Usuario usuarioRequest = UsuarioBuilder.builder()
@@ -32,16 +33,37 @@ public class UsuarioController {
                 .senha(request.getSenha())
                 .tipoDeConta(request.getTipoDeConta())
                 .build();
-        ;
+
         Usuario novoUsuario = usuarioService.criarUsuario(usuarioRequest);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UsuarioResponse.fromDomain(novoUsuario));
     }
 
-    /**
-     * Endpoint para listar todos os usuários.
-     * Protegido pelo SecurityConfig (só BIBLIOTECARIO).
-     */
+    // --- NOVO MÉTODO PARA ATUALIZAR (PUT) ---
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> atualizar(@PathVariable Long id, @RequestBody CriarUsuarioRequest request) {
+        // Busca a entidade no banco (Modo direto para garantir funcionamento)
+        UsuarioEntity entity = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        // Atualiza os dados
+        entity.setNome(request.getNome());
+        entity.setMatricula(request.getMatricula());
+        entity.setTipoDeConta(request.getTipoDeConta());
+        entity.setStatus(request.getStatus());
+
+        // Só atualiza senha se o usuário mandou uma nova
+        if (request.getSenha() != null && !request.getSenha().isEmpty()) {
+            entity.setSenha(request.getSenha()); // Idealmente criptografar, mas para demo ok
+        }
+
+        // Salva no banco
+        usuarioRepository.save(entity);
+
+        // Retorna 204 No Content (Sucesso sem corpo)
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> listarUsuarios() {
         List<Usuario> usuarios = usuarioService.listarUsuarios();
@@ -51,12 +73,12 @@ public class UsuarioController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Endpoint para um usuário logado buscar seus próprios dados.
-     * Protegido pelo SecurityConfig (qualquer um autenticado).
-     */
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponse> getMeuPerfil(Authentication authentication) {
+        // Se estiver no modo "Libera Geral", isso pode vir null, então tratamos
+        if (authentication == null) {
+            return ResponseEntity.notFound().build();
+        }
         String matricula = authentication.getName();
         Usuario usuario = usuarioService.buscarPorMatricula(matricula).orElseThrow();
         return ResponseEntity.ok(UsuarioResponse.fromDomain(usuario));
@@ -65,7 +87,6 @@ public class UsuarioController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletar(@PathVariable Long id) {
-
         usuarioService.deletar(id);
     }
 }

@@ -1,59 +1,13 @@
 package br.com.scripta_api.usuario_service.repository;
 
-import br.com.scripta_api.usuario_service.application.domain.Usuario;
-import br.com.scripta_api.usuario_service.application.gateways.service.UsuarioService;
 import br.com.scripta_api.usuario_service.infra.data.UsuarioEntity;
-import br.com.scripta_api.usuario_service.infra.gateways.UsuarioEntityRepository;
-import br.com.scripta_api.usuario_service.repository.mapper.UsuarioMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Repository
-@RequiredArgsConstructor
-public class UsuarioRepository implements UsuarioService {
-    private final UsuarioMapper mapper;
-    private final UsuarioEntityRepository repository;
-    private final PasswordEncoder passwordEncoder;
+public interface UsuarioRepository extends JpaRepository<UsuarioEntity, Long> {
 
-    @Override
-    @Transactional
-    public Usuario criarUsuario(Usuario usuarioDomain) {
-        String encryptPassword = passwordEncoder.encode(usuarioDomain.getSenha());
-        usuarioDomain.setSenha(encryptPassword);
-        UsuarioEntity entity = mapper.toEntity(usuarioDomain);
-        UsuarioEntity savedEntity = repository.save(entity);
-        return mapper.toDomain(savedEntity);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Usuario> listarUsuarios() {
-        return repository.findAll()
-                .stream().map(mapper::toDomain)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<Usuario> buscarPorMatricula(String matricula) {
-        return repository.findByMatricula(matricula)
-                .map(mapper::toDomain);
-    }
-
-    @Override
-    @Transactional
-    public void deletar(Long id) {
-        if (!repository.existsById(id)) {
-            // Pode usar UsuarioNaoEncontradoException se tiver, ou RuntimeException
-            throw new RuntimeException("Usuário não encontrado com ID: " + id);
-        }
-        repository.deleteById(id);
-    }
-
+    Optional<UsuarioEntity> findByMatricula(String matricula);
 }
