@@ -37,12 +37,12 @@ public final class UsuarioBuilder {
     }
 
     public Usuario build() {
+
         if (usuario.getSenha() == null || usuario.getSenha().isBlank()) {
             throw new IllegalArgumentException("Senha não pode ser nula");
         }
-        if (usuario.getSenha().length() < 10) {
-            throw new IllegalArgumentException("Senha deve ter no mínimo 10 caracteres");
-        }
+
+
         if (usuario.getNome() == null || usuario.getNome().isBlank()) {
             throw new IllegalArgumentException("Nome não pode ser nulo");
         }
