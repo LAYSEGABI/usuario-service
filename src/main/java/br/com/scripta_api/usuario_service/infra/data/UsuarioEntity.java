@@ -27,15 +27,13 @@ public class UsuarioEntity {
     private String matricula;
 
     @Column(nullable = false)
-    @JsonIgnore // Mantém o json limpo
+    @JsonIgnore
     private String senha;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TipoDeConta tipoDeConta;
 
-    @Column(columnDefinition = "VARCHAR(20) DEFAULT 'ATIVO'")
-    private String status;
 
-    // REMOVI: CPF, Email, DataNascimento para evitar erros na apresentação.
+    private String status;
 }
