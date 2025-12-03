@@ -13,6 +13,8 @@ public class LivroResponse {
     private String titulo;
     private String autor;
     private String isbn;
+    private Integer anoPublicacao;
+    private Integer quantidadeTotal;
     private Integer quantidadeDisponivel;
 
     public static LivroResponse fromEntity(LivroEntity entity) {
@@ -21,6 +23,8 @@ public class LivroResponse {
                 entity.getTitulo(),
                 entity.getAutor(),
                 entity.getIsbn(),
+                entity.getAnoPublicacao(),
+                entity.getQuantidadeTotal(),
                 entity.getQuantidadeDisponivel()
         );
     }
