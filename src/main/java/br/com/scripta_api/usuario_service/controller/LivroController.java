@@ -113,20 +113,6 @@ public class LivroController { // Nome correto da classe
         return ResponseEntity.ok(LivroResponse.fromEntity(livroRepository.save(entity)));
     }
 
-    // --- IMPORTAR (Dummy) ---
-    @PostMapping("/importar/{isbn}")
-    public ResponseEntity<LivroResponse> importaLivro(@PathVariable String isbn) {
-        LivroEntity dummy = new LivroEntity();
-        dummy.setTitulo("Livro Importado (" + isbn + ")");
-        dummy.setAutor("Autor Desconhecido");
-        dummy.setIsbn(isbn);
-        dummy.setAnoPublicacao(2023);
-        dummy.setQuantidadeTotal(1);
-        dummy.setQuantidadeDisponivel(1);
-        LivroEntity salvo = livroRepository.save(dummy);
-        return ResponseEntity.ok(LivroResponse.fromEntity(salvo));
-    }
-
     // --- DELETAR ---
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
