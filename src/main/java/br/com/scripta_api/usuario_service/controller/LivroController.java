@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import br.com.scripta_api.usuario_service.application.gateways.service.GoogleBooksService;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +21,14 @@ import java.util.stream.Collectors;
 public class LivroController { // Nome correto da classe
 
     private final LivroRepository livroRepository;
+    private final GoogleBooksService googleBooksService;
+
+    @PostMapping("/importar/{isbn}")
+    public ResponseEntity<LivroResponse> importarLivro(@PathVariable String isbn) {
+        LivroEntity livro = googleBooksService.buscarLivroPorIsbn(isbn);
+        LivroEntity salvo = livroRepository.save(livro);
+        return ResponseEntity.ok(LivroResponse.fromEntity(salvo));
+    }
 
     // --- CRIAR ---
     @PostMapping
